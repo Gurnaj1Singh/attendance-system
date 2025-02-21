@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from backend.database.models import Base
 from backend.database.db_connection import engine
-from backend.api.routes import students, attendance , fines , notifications
+from backend.api.routes import students, attendance , fines , notifications, auth
 
 # Initialize FastAPI app
 app = FastAPI(title="Smart Hostel API", version="1.0")
@@ -10,6 +10,7 @@ app = FastAPI(title="Smart Hostel API", version="1.0")
 Base.metadata.create_all(bind=engine)
 
 # ✅ Include route modules
+app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(students.router, prefix="/students", tags=["Students"])
 app.include_router(attendance.router, prefix="/attendance", tags=["Attendance"])
 app.include_router(fines.router, prefix="/fines", tags=["Fines"])

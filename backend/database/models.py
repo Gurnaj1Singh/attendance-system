@@ -39,17 +39,19 @@ class Hostel(Base):
     students = relationship("Student", back_populates="hostel")
     admin = relationship("Admin", back_populates="hostel")
 
-# 📌 Admin Model
+# 📌 Admin Model (Fix)
 class Admin(Base):
     __tablename__ = "admins"
 
     admin_id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(100), nullable=False)
-    email = Column(String(100), unique=True, nullable=False)
+    username = Column(String(100), unique=True, nullable=False)
+    password = Column(String(255), nullable=False)
     role = Column(Enum("Warden", "Staff", name="admin_role"), nullable=False)
+    email = Column(String(100), unique=True, nullable=True) 
 
     # Relationship
     hostel = relationship("Hostel", back_populates="admin")
+
 
 # 📌 Attendance Model
 class Attendance(Base):
@@ -93,3 +95,4 @@ class Notification(Base):
 
 # Create all tables
 Base.metadata.create_all(engine)
+
