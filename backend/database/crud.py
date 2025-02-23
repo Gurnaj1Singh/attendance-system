@@ -3,14 +3,15 @@ from backend.database.models import Student, Attendance, Fine, Notification
 from datetime import datetime
 
 # 📌 Create a Student
-def create_student(db: Session, name: str, email: str, phone: str, room_number: int, hostel_id: int, emergency_contact: str):
+def create_student(db: Session, name: str, email: str, phone: str, room_number: int, hostel_id: int, emergency_contact: str, password: str):
     new_student = Student(
         name=name,
         email=email,
         phone=phone,
         room_number=room_number,
         hostel_id=hostel_id,
-        emergency_contact=emergency_contact
+        emergency_contact=emergency_contact,
+        password=password  # Storing hashed password
     )
     db.add(new_student)
     db.commit()
@@ -20,6 +21,10 @@ def create_student(db: Session, name: str, email: str, phone: str, room_number: 
 # 📌 Get a Student by ID
 def get_student(db: Session, student_id: int):
     return db.query(Student).filter(Student.student_id == student_id).first()
+
+# 📌 Get a Student by Email (NEW FUNCTION)
+def get_student_by_email(db: Session, email: str):
+    return db.query(Student).filter(Student.email == email).first()
 
 # 📌 Get All Students
 def get_all_students(db: Session):
@@ -50,6 +55,7 @@ def delete_student(db: Session, student_id: int):
         db.commit()
         return True
     return False
+
 
 # 📌 Mark Attendance
 def mark_attendance(db: Session, student_id: int, status: str, location_verified: bool, face_verified: bool):
@@ -160,3 +166,7 @@ def mark_notification_as_read(db: Session, notification_id: int):
         db.refresh(notification)
         return notification
     return None
+
+def get_student_by_email(db: Session, email: str):
+    return db.query(Student).filter(Student.email == email).first()
+

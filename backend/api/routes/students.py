@@ -17,6 +17,7 @@ class StudentCreate(BaseModel):
     room_number: int
     hostel_id: int
     emergency_contact: str
+    password: str
 
 class StudentUpdate(BaseModel):
     name: Optional[str] = None

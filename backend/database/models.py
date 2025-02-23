@@ -19,6 +19,8 @@ class Student(Base):
     face_data = Column(Text)  # Stores face embeddings
     location_coordinates = Column(Text)
     emergency_contact = Column(String(100))
+    password = Column(String(255), nullable=False)
+
 
     # Relationships
     hostel = relationship("Hostel", back_populates="students")
