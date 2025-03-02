@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from backend.database.db_connection import engine
-from backend.database.models import Base, Admin, Student  # Fixed import
+from backend.database.models import Base, Admin, Student,Hostel  # Fixed import
 from backend.api.dependencies import get_db
 from pydantic import BaseModel, EmailStr
 from passlib.context import CryptContext
@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from typing import Optional
 from backend.database.crud import (
-    get_student_by_email, create_student
+    get_student_by_email, create_student, get_admin_by_username
 )
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
@@ -17,7 +17,8 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 SECRET_KEY = "your-secret-key"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/student-login")
+oauth2_admin_scheme = OAuth2PasswordBearer(tokenUrl="/auth/admin-login")
 router = APIRouter()
 
 # Password hashing
@@ -58,10 +59,7 @@ def verify_password(plain_password, hashed_password):
 # ✅ Create JWT token
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -89,31 +87,32 @@ def create_admin(admin_data: AdminCreate, db: Session = Depends(get_db)):
     db.refresh(new_admin)
     return {"message": "Admin created successfully"}
 
-# ✅ 2. Admin Login
-@router.post("/login")
-def login_admin(admin_data: AdminLogin, db: Session = Depends(get_db)):
-    admin = db.query(Admin).filter(Admin.username == admin_data.username).first()
-    if not admin or not verify_password(admin_data.password, admin.password):
-        raise HTTPException(status_code=400, detail="Invalid username or password")
+# ✅ Admin Login Route
+@router.post("/admin-login")
+def admin_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    admin = get_admin_by_username(db, form_data.username)
+    if not admin or not pwd_context.verify(form_data.password, admin.password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    token = create_access_token({"sub": admin.username, "role": admin.role})
-    return {"access_token": token, "token_type": "bearer"}
+    access_token = create_access_token({"sub": admin.username, "role": admin.role})
+    return {"access_token": access_token, "token_type": "bearer"}
 
 # ✅ 3. Student Signup
 @router.post("/student-signup")
-def create_student_account(student_data: StudentCreate, db: Session = Depends(get_db)):
-    if not student_data.email:
-        raise HTTPException(status_code=400, detail="Email is required")
+def student_signup(student_data: StudentCreate, db: Session = Depends(get_db)):
+    # ✅ Ensure `hostel_id` exists
+    valid_hostel = db.query(Hostel).filter(Hostel.hostel_id == student_data.hostel_id).first()
+    if not valid_hostel:
+        raise HTTPException(status_code=400, detail="Invalid hostel ID. Please select a valid hostel.")
 
-    existing_student = get_student_by_email(db, student_data.email)
+    existing_student = db.query(Student).filter(Student.email == student_data.email).first()
     if existing_student:
-        raise HTTPException(status_code=400, detail="Student with this email already exists")
+        raise HTTPException(status_code=400, detail="Student with this email already exists.")
 
     hashed_password = hash_password(student_data.password)
-
     new_student = create_student(db, **student_data.dict(exclude={"password"}), password=hashed_password)
+    return {"message": "Signup successful", "student": new_student}
 
-    return {"message": "Student account created successfully"}
 
 # ✅ 4. Student Login
 @router.post("/student-login")
@@ -125,35 +124,36 @@ def student_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session 
     access_token = create_access_token({"sub": student.email, "role": "student"})
     return {"access_token": access_token, "token_type": "bearer"}
 
-# ✅ 5. Verify Token - Protect Student Routes
+# Define authentication scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/student-login")
 
-def get_current_student(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+SECRET_KEY = "your-secret-key"  # Replace with your actual secret key
+ALGORITHM = "HS256"
+
+def get_authenticated_student(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
-        if email is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
-        student = get_student_by_email(db, email)
-        if student is None:
-            raise HTTPException(status_code=401, detail="Student not found")
+        if not email:
+            raise HTTPException(status_code=401, detail="Invalid token: Missing email")
+        
+        student = db.query(Student).filter(Student.email == email).first()
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found")
+        
         return student
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    except JWTError as e:
+        raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
 
-
-
-SECRET_KEY = "your-secret-key"
-ALGORITHM = "HS256"
-
-oauth2x_scheme = OAuth2PasswordBearer(tokenUrl="/auth/admin-login")
-
-def get_current_admin(token: str = Depends(oauth2x_scheme), db=Depends(get_db)):
+def get_current_admin(token: str = Depends(oauth2_admin_scheme), db: Session = Depends(get_db)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise HTTPException(status_code=401, detail="Invalid token")
-        return db.query(Admin).filter(Admin.username == username).first()
-    except JWTError:
+        admin = get_admin_by_username(db, username)
+        if admin is None:
+            raise HTTPException(status_code=401, detail="Admin not found")
+        return admin
+    except:
         raise HTTPException(status_code=401, detail="Invalid token")

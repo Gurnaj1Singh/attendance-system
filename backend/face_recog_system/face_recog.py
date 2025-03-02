@@ -3,8 +3,10 @@ import cv2
 import os
 import pickle
 
-DATASET_PATH = "face_recog_system/dataset/"
-ENCODINGS_FILE = "face_recog_system/encodings.pickle"
+DATASET_PATH = "smart-hostel-attendance/backend/face_recog_system/dataset/"
+ENCODINGS_FILE = "smart-hostel-attendance/backend/face_recog_system/encodings.pickle"
+
+print(f"Checking dataset path: {os.path.abspath(DATASET_PATH)}")
 
 def encode_faces():
     known_encodings = []

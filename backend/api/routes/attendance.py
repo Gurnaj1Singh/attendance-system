@@ -1,8 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import  Depends, HTTPException,APIRouter ,File, UploadFile, Form
 from sqlalchemy.orm import Session
 from backend.database.crud import mark_attendance, get_attendance_by_student, get_all_attendance
 from backend.api.dependencies import get_db
+from backend.database.models import Hostel, Student
+
 from pydantic import BaseModel
+import shutil
+import os
+from geopy.distance import geodesic
+
 
 router = APIRouter()
 
@@ -12,6 +18,8 @@ class AttendanceCreate(BaseModel):
     status: str
     location_verified: bool
     face_verified: bool
+    latitude: float
+    longitude: float
 
 # ✅ 6. GET all attendance records
 @router.get("/")
@@ -26,18 +34,72 @@ def get_student_attendance(student_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="No attendance records found")
     return {"attendance": attendance}
 
-# ✅ 8. POST - Mark attendance
-@router.post("/")
-def mark_student_attendance(attendance: AttendanceCreate, db: Session = Depends(get_db)):
-    if attendance.status not in ["Present", "Absent", "Late"]:
-        raise HTTPException(status_code=400, detail="Invalid attendance status")
-    
-    new_attendance = mark_attendance(
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
+from sqlalchemy.orm import Session
+from backend.database.crud import mark_attendance
+from backend.api.dependencies import get_db
+from backend.face_recog_system import face_recog
+from backend.database.crud import db_mark_attendance
+
+UPLOAD_DIR = "backend/face_recog_system/uploads/"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# Hostel Location (NIT Jalandhar Coordinates)
+HOSTEL_LOCATION = (31.3949, 75.5331)
+ALLOWED_DISTANCE_METERS = 100  # 100 meters radius
+
+@router.post("/mark")
+def mark_attendance(
+    token: str = Form(...),
+    file: UploadFile = File(...),
+    latitude: float = Form(...),
+    longitude: float = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Marks attendance if location and face recognition match."""
+    # Get student from token
+    student = get_student_from_token(token, db)
+    if not student:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    # Verify location
+    student_location = (latitude, longitude)
+    distance = geodesic(HOSTEL_LOCATION, student_location).meters
+    location_verified = distance <= ALLOWED_DISTANCE_METERS
+
+    # Save uploaded image
+    file_path = os.path.join(UPLOAD_DIR, f"{student.student_id}.png")
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # Perform face recognition
+    recognized_name = face_recog.recognize_face(file_path)
+    face_verified = recognized_name == student.name
+
+    # Mark attendance if both checks pass
+    if not location_verified:
+        raise HTTPException(status_code=400, detail="Location verification failed")
+    if not face_verified:
+        raise HTTPException(status_code=400, detail="Face recognition failed")
+
+    attendance_record = db_mark_attendance(
         db,
-        student_id=attendance.student_id,
-        status=attendance.status,
-        location_verified=attendance.location_verified,
-        face_verified=attendance.face_verified
+        student_id=student.student_id,
+        status="Present",
+        location_verified=location_verified,
+        face_verified=face_verified,
+        latitude=latitude,
+        longitude=longitude
     )
-    
-    return {"message": "Attendance marked successfully", "attendance": new_attendance}
+
+    return {"message": "Attendance marked successfully", "attendance": attendance_record}
+
+
+def get_student_from_token(token: str, db: Session):
+    from backend.api.routes.auth import get_authenticated_student
+    return get_authenticated_student(token, db)
+
+
+
+
+

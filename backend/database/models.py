@@ -1,7 +1,7 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Enum, DECIMAL
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Enum, DECIMAL,Float
 from sqlalchemy.orm import relationship
 from datetime import datetime
-from backend.database.db_connection import engine  # Absolute import
+from backend.database.db_connection import engine  
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -36,6 +36,8 @@ class Hostel(Base):
     name = Column(String(100), nullable=False)
     location = Column(Text, nullable=False)
     warden_id = Column(Integer, ForeignKey("admins.admin_id"))
+    latitude = Column(Float, nullable=False)   
+    longitude = Column(Float, nullable=False)
 
     # Relationships
     students = relationship("Student", back_populates="hostel")
@@ -66,6 +68,10 @@ class Attendance(Base):
     location_verified = Column(Boolean, default=False)
     face_verified = Column(Boolean, default=False)
 
+    # ✅ NEW: Store student's live GPS coordinates for verification
+    latitude = Column(Float, nullable=True)   # Stores student latitude
+    longitude = Column(Float, nullable=True)  # Stores student longitude
+    
     # Relationship
     student = relationship("Student", back_populates="attendance_records")
 
