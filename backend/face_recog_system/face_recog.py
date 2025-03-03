@@ -3,9 +3,10 @@ import cv2
 import os
 import pickle
 
-DATASET_PATH = "smart-hostel-attendance/backend/face_recog_system/dataset/"
-ENCODINGS_FILE = "smart-hostel-attendance/backend/face_recog_system/encodings.pickle"
-
+DATASET_PATH = "backend/face_recog_system/dataset/"
+ENCODINGS_FILE = "backend/face_recog_system/encodings.pickle"
+absolute_path = os.path.abspath(DATASET_PATH)
+print(f"📂 UPLOAD_DIR is expected at: {absolute_path}")
 print(f"Checking dataset path: {os.path.abspath(DATASET_PATH)}")
 
 def encode_faces():
@@ -62,7 +63,7 @@ def recognize_face(image_path):
     import pickle
     import os
 
-    ENCODINGS_FILE = "face_recog_system/encodings.pickle"
+    ENCODINGS_FILE = "backend/face_recog_system/encodings.pickle"
 
     # Ensure the encodings file exists
     if not os.path.exists(ENCODINGS_FILE):

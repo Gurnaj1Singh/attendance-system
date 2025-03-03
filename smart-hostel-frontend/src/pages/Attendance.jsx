@@ -27,16 +27,20 @@ export default function AttendancePage() {
       });
       setStudent(response.data);
     } catch (error) {
-      console.error("Error fetching student data", error.response);
+      console.error("❌ Error fetching student data", error.response || error);
     }
   };
 
   const getLocation = () => {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        console.log("📍 Location Fetched:", pos.coords.latitude, pos.coords.longitude);
         setLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
       },
-      (err) => console.error("Location error", err),
+      (err) => {
+        console.error("❌ Location error", err);
+        alert("⚠️ Location access is required to mark attendance.");
+      },
       { enableHighAccuracy: true }
     );
   };
@@ -46,47 +50,86 @@ export default function AttendancePage() {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       videoRef.current.srcObject = stream;
     } catch (error) {
-      console.error("Error accessing camera", error);
+      alert("⚠️ Camera access is required for marking attendance.");
+      console.error("❌ Error accessing camera", error);
     }
   };
 
   const markAttendance = async () => {
     setLoading(true);
+
+    // Validate required fields
+    if (!token) {
+      alert("❌ User not authenticated. Please log in again.");
+      setLoading(false);
+      return;
+    }
+    if (!location.latitude || !location.longitude) {
+      alert("❌ Location not available. Please enable location services.");
+      getLocation();
+      setLoading(false);
+      return;
+    }
+    if (!student) {
+      alert("❌ Student data is missing. Please refresh the page.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       const ctx = canvas.getContext("2d");
+
+      // Capture image from video
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       ctx.drawImage(video, 0, 0);
       const capturedImage = canvas.toDataURL("image/png");
+
+      // Prepare form data
       const formData = new FormData();
+      formData.append("token", token);
       formData.append("file", dataURItoBlob(capturedImage), "capture.png");
       formData.append("latitude", location.latitude);
       formData.append("longitude", location.longitude);
 
-      const faceResponse = await axios.post("http://localhost:8000/recognize-face/", formData, {
+      console.log("🚀 Sending Face Recognition Request...");
+
+      // Face Recognition Request
+      const faceResponse = await axios.post("http://127.0.0.1:8001/recognize-face/", formData, {
         headers: { "Content-Type": "multipart/form-data" },
+        responseType: "json",
       });
 
-      if (faceResponse.data.name !== student.name) {
-        alert("Face recognition failed! Try again.");
+      console.log("✅ Face Recognition Response:", faceResponse.data);
+
+      // Validate Face Recognition
+      if (!faceResponse.data.name || faceResponse.data.name === "Unknown" || faceResponse.data.name !== student.name) {
+        alert("❌ Face recognition failed! Ensure proper lighting and try again.");
         setLoading(false);
         return;
       }
 
-      const attendanceResponse = await axios.post("http://localhost:8000/attendance/", {
-        student_id: student.student_id,
-        status: "Present",
-        location_verified: true,
-        face_verified: true,
-        latitude: location.latitude,
-        longitude: location.longitude,
+      console.log("✅ Face Matched with:", faceResponse.data.name);
+
+      console.log("🚀 Sending Attendance Marking Request...");
+
+      // Attendance Marking Request
+      const attendanceResponse = await axios.post("http://localhost:8000/attendance/mark", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
+
+      console.log("✅ Attendance API Response:", attendanceResponse.data);
+
+      if (!attendanceResponse.data || !attendanceResponse.data.message) {
+        throw new Error("⚠️ Invalid response from server. Expected 'message' field.");
+      }
 
       setAttendanceStatus(attendanceResponse.data.message);
     } catch (error) {
-      console.error("Error marking attendance", error);
+      console.error("❌ Error marking attendance:", error.response?.data || error.message);
+      alert(error.response?.data?.detail || "❌ Failed to mark attendance. Please try again.");
     }
     setLoading(false);
   };

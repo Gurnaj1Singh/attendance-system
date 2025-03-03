@@ -46,7 +46,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # Hostel Location (NIT Jalandhar Coordinates)
 HOSTEL_LOCATION = (31.3949, 75.5331)
-ALLOWED_DISTANCE_METERS = 100  # 100 meters radius
+ALLOWED_DISTANCE_METERS = 150  # 100 meters radius
 
 @router.post("/mark")
 def mark_attendance(
@@ -62,9 +62,16 @@ def mark_attendance(
     if not student:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+    # Hostel Location (NIT Jalandhar Coordinates)
+    HOSTEL_LOCATION = (31.3949, 75.5331)  # ✅ Ensure this is correct
+    ALLOWED_DISTANCE_METERS = 100  # ✅ Increase range if needed
+
     # Verify location
     student_location = (latitude, longitude)
     distance = geodesic(HOSTEL_LOCATION, student_location).meters
+
+    print(f"📏 Calculated Distance: {distance} meters")  # ✅ Debugging log
+
     location_verified = distance <= ALLOWED_DISTANCE_METERS
 
     # Save uploaded image
@@ -78,7 +85,7 @@ def mark_attendance(
 
     # Mark attendance if both checks pass
     if not location_verified:
-        raise HTTPException(status_code=400, detail="Location verification failed")
+        raise HTTPException(status_code=400, detail=f"Location verification failed. You are {distance:.2f}m away.")
     if not face_verified:
         raise HTTPException(status_code=400, detail="Face recognition failed")
 
@@ -93,6 +100,7 @@ def mark_attendance(
     )
 
     return {"message": "Attendance marked successfully", "attendance": attendance_record}
+
 
 
 def get_student_from_token(token: str, db: Session):
