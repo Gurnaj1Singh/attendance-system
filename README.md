@@ -1,4 +1,4 @@
-# smart-hostel-attendance
+# attendance system
 a web application that marks the attendance of students/employees based on their location with face verification
 Frontend (Web-Based, Minimal UI, Best User Experience)
 ✅ Framework: React.js (Fast, modern UI)
