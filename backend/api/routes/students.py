@@ -35,9 +35,6 @@ class StudentUpdate(BaseModel):
 def get_students(db: Session = Depends(get_db)):
     return {"students": get_all_students(db)}
 
-# ✅ 2. GET a student by ID
-
-
 # ✅ 3. POST - Add a new student
 @router.post("/")
 def add_student(student: StudentCreate, db: Session = Depends(get_db)):

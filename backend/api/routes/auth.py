@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from backend.database.db_connection import engine
-from backend.database.models import Base, Admin, Student,Hostel  # Fixed import
+from backend.database.models import  Admin, Student,Hostel  # Fixed import
 from backend.api.dependencies import get_db
 from pydantic import BaseModel, EmailStr
 from passlib.context import CryptContext
@@ -24,7 +23,7 @@ router = APIRouter()
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# ✅ Pydantic models
+#  Pydantic models
 class AdminCreate(BaseModel):
     username: str
     password: str
@@ -48,22 +47,22 @@ class StudentLogin(BaseModel):
     email: EmailStr
     password: str
 
-# ✅ Hash password
+#  Hash password
 def hash_password(password: str):
     return pwd_context.hash(password)
 
-# ✅ Verify password
+#  Verify password
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
-# ✅ Create JWT token
+#  Create JWT token
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-# ✅ 1. Admin Signup
+#  1. Admin Signup
 @router.post("/signup")
 def create_admin(admin_data: AdminCreate, db: Session = Depends(get_db)):
     if not admin_data.email:
@@ -87,7 +86,7 @@ def create_admin(admin_data: AdminCreate, db: Session = Depends(get_db)):
     db.refresh(new_admin)
     return {"message": "Admin created successfully"}
 
-# ✅ Admin Login Route
+#  Admin Login Route
 @router.post("/admin-login")
 def admin_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     admin = get_admin_by_username(db, form_data.username)
@@ -97,10 +96,10 @@ def admin_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     access_token = create_access_token({"sub": admin.username, "role": admin.role})
     return {"access_token": access_token, "token_type": "bearer"}
 
-# ✅ 3. Student Signup
+#  3. Student Signup
 @router.post("/student-signup")
 def student_signup(student_data: StudentCreate, db: Session = Depends(get_db)):
-    # ✅ Ensure `hostel_id` exists
+    #  Ensure `hostel_id` exists
     valid_hostel = db.query(Hostel).filter(Hostel.hostel_id == student_data.hostel_id).first()
     if not valid_hostel:
         raise HTTPException(status_code=400, detail="Invalid hostel ID. Please select a valid hostel.")
@@ -114,7 +113,7 @@ def student_signup(student_data: StudentCreate, db: Session = Depends(get_db)):
     return {"message": "Signup successful", "student": new_student}
 
 
-# ✅ 4. Student Login
+#  4. Student Login
 @router.post("/student-login")
 def student_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     student = get_student_by_email(db, form_data.username)

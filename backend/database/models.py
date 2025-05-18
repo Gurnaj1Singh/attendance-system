@@ -20,6 +20,7 @@ class Student(Base):
     location_coordinates = Column(Text)
     emergency_contact = Column(String(100))
     password = Column(String(255), nullable=False)
+    
 
 
     # Relationships

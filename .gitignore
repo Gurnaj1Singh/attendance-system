@@ -1,0 +1,45 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+.env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+
+# Databases
+*.sqlite3
+*.db
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Node modules for React frontend
+node_modules/
+build/
+dist/
+
+# React build artifacts (if built separately)
+frontend/node_modules/
+frontend/build/
+
+# Environment variables
+.env
+*.env
+
+# Face encodings, if sensitive
+**/encodings.pickle
+
+# Temporary files
+*.bak
+*.tmp
