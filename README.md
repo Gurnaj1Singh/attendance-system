@@ -1,4 +1,4 @@
-# 📸 Smart Hostel Attendance System
+# 📸 Attendance System
 
 A secure and intelligent face recognition-based hostel attendance system that ensures students are physically present at their hostel using GPS location verification and facial matching.
 
