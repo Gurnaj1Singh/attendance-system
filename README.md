@@ -1,41 +1,70 @@
-# smart-hostel-attendance
-a web application that marks the attendance of students/employees based on their location with face verification
-Frontend (Web-Based, Minimal UI, Best User Experience)
-✅ Framework: React.js (Fast, modern UI)
-✅ Styling: Tailwind CSS (Minimalist, highly customizable)
-✅ UI Library: Material-UI (Ready-made components for better UX)
-✅ State Management: React Context API (Lightweight, no unnecessary dependencies)
-✅ Notifications: Firebase Cloud Messaging (FCM) & Novu (Multi-channel alerts)
-✅ Routing: React Router (For seamless navigation)
-✅ PWA Support: Optional (for mobile browser compatibility)
+# 📸 Smart Hostel Attendance System
 
-Backend (Fast Performance, Low Latency)
-✅ Framework: FastAPI (Python) – Faster than Flask/Django
-✅ Alternative: Node.js (Express.js) – If needed for flexibility
-✅ Authentication: JWT (JSON Web Token) for security
-✅ Face Recognition:
-Primary: CompreFace (Fast, self-hosted)
-Backup: OpenCV + FaceNet or InsightFace (For optimized performance)
-Liveness Detection: Mediapipe (Google’s real-time face detection)
+A secure and intelligent face recognition-based hostel attendance system that ensures students are physically present at their hostel using GPS location verification and facial matching.
 
-✅ Location Verification:
-Primary: HTML5 Geolocation API (No cost, quick integration)
-Backup: Google Maps API (For advanced geofencing if needed)
-✅ Real-Time Updates: WebSockets (For live attendance tracking)
+![Smart Hostel Banner](https://via.placeholder.com/1000x300?text=Smart+Hostel+Attendance+System) <!-- Optional custom banner -->
 
-Database (Lightweight, Scalable)
-✅ Primary: PostgreSQL (Relational, efficient for attendance records)
-✅ Backup: Firebase Firestore (No-cost, easy for real-time syncing)
-✅ Cache: Redis (For storing frequent queries & improving performance)
+---
 
-Hosting & Deployment (Free & Low-Cost Options)
-✅ Frontend: Vercel / Netlify (Fast global deployment)
-✅ Backend: AWS EC2 (Low-cost) / Firebase Functions (If serverless is needed)
-✅ Database Hosting: PostgreSQL on Supabase or NeonDB (Free tiers available)
-✅ File Storage (if needed for photos/logs): Firebase Storage / S3
+## 🚀 Features
 
-Security Enhancements
-✅ Liveness Detection: Prevents spoofing attempts
-✅ JWT Authentication: Secure logins for students & admins
-✅ Encryption: Encrypt attendance & face data at rest and in transit
-✅ Audit Logs: Track suspicious login & attendance marking attempts
+✅ Face Recognition using `face_recognition` and OpenCV  
+✅ Location Verification using GPS (Geopy + Browser Geolocation)  
+✅ Attendance Window Restriction (e.g. 8PM–10PM only)  
+✅ Secure Student Login & Token-based Authentication  
+✅ Admin Dashboard for Real-time Attendance Monitoring  
+✅ Live Camera Feed — No Manual Uploads  
+✅ React Frontend + FastAPI Backend  
+✅ MySQL Database Integration
+
+---
+
+## 🧠 Tech Stack
+
+| Frontend   | Backend     | Database | Location & Vision |
+|------------|-------------|----------|-------------------|
+| React.js   | FastAPI     | MySQL    | Geopy, OpenCV, face_recognition |
+
+---
+
+## 📸 How It Works
+
+1. Student logs in using email & password.
+2. System requests camera & location access.
+3. Student captures their face in real-time.
+4. Backend verifies:
+   - If the face matches the saved encoding
+   - If the student is physically near their hostel (within 100m)
+   - If the current time is within the allowed window (e.g., 8PM–10PM)
+5. If all checks pass ✅ → Attendance is recorded.
+
+---
+
+## 🛠️ Installation
+
+### 🧩 Backend (FastAPI + MySQL)
+git clone https://github.com/your-username/smart-hostel-attendance.git
+cd smart-hostel-attendance/backend
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run server
+uvicorn backend.api.main:app --reload
+
+### Frontend
+cd ../frontend
+npm install
+npm run dev
+
+### 📷 Dataset Setup for Face Recognition
+# Create a folder: backend/face_recog_system/dataset/
+Add clear front-facing .jpg or .png images named exactly as the student’s name (e.g., John Doe.jpg)
+# Run:
+- python backend/face_recog_system/face_recog.py
+- This will generate encodings and save them to the database.
+
